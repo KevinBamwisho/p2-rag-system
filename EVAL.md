@@ -25,26 +25,84 @@ The minimum detectable difference is the smallest gap this many queries could re
 
 For each of `dense`, `hybrid` and `rerank`, one or two sentences: the embedding model, how documents were chunked, what was fused and how, how many candidates the reranker saw, and anything you changed from the 12 and 13 lab code.
 
-TODO: describe your three systems.
+All four systems search the same chunks: windows of 300 words that overlap by 50 (the `p2.toml` defaults), title line included.
+That cuts the 2,484 sections into 3,132 chunks (3,127 distinct texts, since a few chunks repeat word for word), and most sections fit in one chunk.
+A document gets the score of its best chunk.
+
+`dense` embeds every chunk with bge-small-en-v1.5 (384 dimensions, through fastembed) and ranks chunks by cosine similarity with the query, same as the bge arm in the 12 lab, with no query instruction.
+Encoding the corpus from scratch took 115 seconds on my laptop (timed around `embed.doc_vectors`), and after that the vectors come from the cache.
+I also ran `dense_potion`, the same thing with potion-retrieval-32M, a static model.
+It encoded the same chunks in 0.4 seconds and got MRR@10 0.475 to bge's 0.562, a difference of -0.088 [-0.335, +0.153], so it's not distinguishable on 20 queries.
+
+`hybrid` is reciprocal rank fusion (k = 60) of `bm25` and `dense` over the full rankings, like `rrf()` in the 13 lab: each document scores the sum of 1 / (60 + rank) over the two lists.
+One change from the lab: I drop documents with a bm25 score of 0 from bm25's list.
+They share no word with the query, but the lab's version still ranks them in docid order, so the small bonus each one gets just depends on where its id falls in the alphabet.
+On practice this leaves MRR@10 at 0.471, but it moves the first relevant section down on three queries, all outside the top 10: p08 from 18 to 22, p10 from 103 to 109, p14 from 56 to 63.
+In those queries the relevant sections (all of p08's and p10's, two of p14's three) have no bm25 match, so the lab's version was lifting them by alphabet position, not by anything bm25 found.
+I kept the change, but it does push p08 out of a top 20.
+`search_chunks` fuses the two chunk rankings the same way, so `p2 answer` can use it.
+
+TODO: describe `rerank` (Phase 2).
 
 ### Practice queries (20)
 
 Scores per system.
 
 <!-- p2:begin shared-practice -->
-_No scored runs here yet: run `uv run p2 run --corpus shared --queries practice --system bm25` (or `--all`), then `uv run p2 score`._
+| System | Recall@10 | MRR@10 | nDCG@10 |
+| --- | ---: | ---: | ---: |
+| bm25 | 0.625 | 0.507 | 0.518 |
+| dense | 0.558 | 0.562 | 0.480 |
+| hybrid | 0.617 | 0.471 | 0.457 |
+| dense_potion | 0.533 | 0.475 | 0.432 |
+
+20 judged queries; nDCG uses binary labels; a random ranking of the 2,484 documents would get recall@10 near 0.004.
 <!-- p2:end shared-practice -->
 
 The same scores per query class.
 
 <!-- p2:begin shared-practice-classes -->
-_No scored runs here yet: run `uv run p2 run --corpus shared --queries practice --system bm25` (or `--all`), then `uv run p2 score`._
+| System | Metric | identifier (n=7) | paraphrase (n=7) | mixed (n=6) |
+| --- | --- | ---: | ---: | ---: |
+| bm25 | Recall@10 | 1.000 | 0.000 | 0.917 |
+| bm25 | MRR@10 | 0.810 | 0.000 | 0.746 |
+| bm25 | nDCG@10 | 0.857 | 0.000 | 0.728 |
+| dense | Recall@10 | 0.214 | 0.595 | 0.917 |
+| dense | MRR@10 | 0.333 | 0.714 | 0.653 |
+| dense | nDCG@10 | 0.211 | 0.593 | 0.661 |
+| hybrid | Recall@10 | 0.571 | 0.405 | 0.917 |
+| hybrid | MRR@10 | 0.514 | 0.154 | 0.792 |
+| hybrid | nDCG@10 | 0.435 | 0.203 | 0.779 |
+| dense_potion | Recall@10 | 0.500 | 0.286 | 0.861 |
+| dense_potion | MRR@10 | 0.571 | 0.300 | 0.565 |
+| dense_potion | nDCG@10 | 0.470 | 0.254 | 0.595 |
 <!-- p2:end shared-practice-classes -->
 
 Differences between every pair of systems, each with its paired interval and the minimum detectable difference.
 
 <!-- p2:begin shared-practice-pairs -->
-_No scored runs here yet: run `uv run p2 run --corpus shared --queries practice --system bm25` (or `--all`), then `uv run p2 score`._
+| Comparison | Metric | Mean difference | 95% interval | MDD | Reading |
+| --- | --- | ---: | ---: | ---: | --- |
+| dense minus bm25 | Recall@10 | -0.067 | [-0.350, +0.225] | 0.415 | not distinguishable |
+| dense minus bm25 | MRR@10 | +0.055 | [-0.225, +0.343] | 0.412 | not distinguishable |
+| dense minus bm25 | nDCG@10 | -0.039 | [-0.302, +0.231] | 0.385 | not distinguishable |
+| hybrid minus bm25 | Recall@10 | -0.008 | [-0.225, +0.208] | 0.317 | not distinguishable |
+| hybrid minus bm25 | MRR@10 | -0.036 | [-0.178, +0.084] | 0.193 | not distinguishable |
+| hybrid minus bm25 | nDCG@10 | -0.062 | [-0.218, +0.082] | 0.218 | not distinguishable |
+| hybrid minus dense | Recall@10 | +0.058 | [-0.117, +0.242] | 0.261 | not distinguishable |
+| hybrid minus dense | MRR@10 | -0.091 | [-0.305, +0.110] | 0.300 | not distinguishable |
+| hybrid minus dense | nDCG@10 | -0.023 | [-0.191, +0.137] | 0.240 | not distinguishable |
+| dense_potion minus bm25 | Recall@10 | -0.092 | [-0.308, +0.125] | 0.313 | not distinguishable |
+| dense_potion minus bm25 | MRR@10 | -0.033 | [-0.228, +0.177] | 0.296 | not distinguishable |
+| dense_potion minus bm25 | nDCG@10 | -0.086 | [-0.268, +0.106] | 0.270 | not distinguishable |
+| dense_potion minus dense | Recall@10 | -0.025 | [-0.233, +0.167] | 0.286 | not distinguishable |
+| dense_potion minus dense | MRR@10 | -0.088 | [-0.335, +0.153] | 0.349 | not distinguishable |
+| dense_potion minus dense | nDCG@10 | -0.047 | [-0.260, +0.159] | 0.299 | not distinguishable |
+| dense_potion minus hybrid | Recall@10 | -0.083 | [-0.258, +0.067] | 0.236 | not distinguishable |
+| dense_potion minus hybrid | MRR@10 | +0.003 | [-0.161, +0.175] | 0.248 | not distinguishable |
+| dense_potion minus hybrid | nDCG@10 | -0.025 | [-0.161, +0.108] | 0.195 | not distinguishable |
+
+The interval is a paired bootstrap (10,000 resamples of the queries); MDD is the smallest difference this many queries detect 80% of the time.
 <!-- p2:end shared-practice-pairs -->
 
 The 40 test queries have no answer key in this repo.
@@ -56,7 +114,23 @@ Which differences are distinguishable from zero and which are not?
 What is the minimum detectable difference at 20 queries, and what does that say about any gap smaller than it?
 Which claim from lecture 12 or 13 did your numbers support, and which did they leave open?
 
-TODO: write what the practice-query intervals let you claim.
+No two systems are distinguishable on the 20 practice queries: every paired interval includes zero, on all three metrics.
+The minimum detectable difference at 20 queries runs from 0.19 to 0.42, and every gap I saw is well under its own pair's MDD.
+The biggest ones, -0.092 recall@10 for dense_potion minus bm25 and -0.091 MRR@10 for hybrid minus dense, sit against MDDs of 0.313 and 0.300.
+The MDD is the gap this gold set would catch 80% of the time, so a real gap of 0.1 would get caught a lot less often than that.
+"Not distinguishable" here means the gold set is too small to tell, not that the systems are the same.
+
+The per class table shows the pattern from lecture 12, keyword search strong on identifiers and weak on paraphrases and dense the other way, but each class is only 7 queries with no interval of its own, so it describes this gold set and doesn't prove a rule.
+bm25 has recall@10 1.000 on identifier queries and 0.000 on paraphrase queries, and dense has 0.214 and 0.595.
+So dense is better on paraphrases than on identifiers, but even on paraphrases it only finds 0.595 of the relevant sections in its top 10 on average.
+The two systems winning in opposite directions is probably why the overall dense minus bm25 interval is so wide, [-0.225, +0.343], since big per query differences of both signs make the resampled mean swing around; I haven't tested that.
+
+The claim my numbers didn't support is that hybrid gets the best of both.
+Inside the identifier and paraphrase classes hybrid lands between its two inputs (MRR@10 0.514 on identifiers vs bm25's 0.810, and 0.154 on paraphrases vs dense's 0.714), and it only beats both on mixed.
+Overall its MRR@10 (0.471) and nDCG@10 (0.457) are the lowest of the three, though not distinguishably, and its recall@10 (0.617) is between bm25's and dense's.
+What's going on is that RRF only counts ranks: with k = 60, a section only one system finds scores about 1/61 at best, while a section ranked around 50th by both scores 2/110 and passes it.
+You can see it in the full rankings (rank of the first relevant section in bm25 / dense / hybrid, deeper than the top 10 the run files keep): p03 is 3 / 1736 / 35 and p06 is 1 / 664 / 32, and on p08 bm25 doesn't match any relevant section, dense ranks one first, and hybrid puts it 22nd.
+p10 and p14 fail a different way: dense misses them too (first relevant at 33 and 19), so fusion had nothing good to work with.
 
 ---
 
@@ -215,6 +289,18 @@ The Claude calls, tokens and seconds in every trace you committed, and what a ch
 
 <!-- p2:begin stretch-cost -->
 _No Claude traces yet: a run of a system that calls Claude, `p2 answer` and `p2 judge` write them in traces/, and then `uv run p2 score` fills this table._
+
+Systems that do not call Claude, from traces/retrieval/ on the machine that last ran `p2 score` (git ignores that folder, so `p2 check` does not compare this part):
+
+| Trace | System | Queries | Seconds | Milliseconds per query |
+| --- | --- | ---: | ---: | ---: |
+| traces/retrieval/shared-practice-bm25.jsonl | bm25 | 20 | 0.03 | 1.7 |
+| traces/retrieval/shared-practice-dense.jsonl | dense | 20 | 0.24 | 11.8 |
+| traces/retrieval/shared-practice-dense_potion.jsonl | dense_potion | 20 | 0.05 | 2.3 |
+| traces/retrieval/shared-practice-hybrid.jsonl | hybrid | 20 | 0.26 | 13.1 |
+| traces/retrieval/shared-test-bm25.jsonl | bm25 | 40 | 0.13 | 3.2 |
+| traces/retrieval/shared-test-dense.jsonl | dense | 40 | 0.32 | 8.1 |
+| traces/retrieval/shared-test-hybrid.jsonl | hybrid | 40 | 0.48 | 12.0 |
 <!-- p2:end stretch-cost -->
 
 ### The grep agent (option 5)
