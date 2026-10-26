@@ -26,7 +26,17 @@ Commit this answer before your first `uv run p2 score` on the own corpus.
 Git history then shows that the expectation came first, which is what lets it be wrong in a way that teaches you something.
 If you were surprised later, say so in prompt 4 or in EVAL.md; do not come back and rewrite this one.
 
-TODO: your answer to prompt 1.
+### Answer
+
+I picked 400 to 600 arXiv abstracts on customer-feedback NLP: aspect-based sentiment, review and opinion mining, complaint detection, customer-support text. I’m aiming at a role that’s mostly voice-of-customer and NLP on feedback text, so this is the kind of stuff I’d actually be searching through on the job. The abstracts are CC0 so I can republish them, and they’re about 200 words each so judging relevance is quick. 
+
+I expect rerank to win again. On the CFR it put the right section first every time it was in hybrid’s top 20, and abstracts are short so it should be cheaper too. The catch is the same as before: it can’t fix anything hybrid didn’t find.
+
+I expect bm25 to do worst overall. A named query should act like a CFR identifier, so bm25 should be fine there. But a plain-language query should act like a paraphrase, and on the CFR bm25 scored 0 when the wording didn’t match. That’s a whole query class where it can crash. Dense should do better here than on the CFR since this is prose, not legal codes.
+
+I expect hybrid to land close behind rerank. bm25 and dense should agree more often on abstracts, and RRF’s problem was burying sections only one system found, so it should hurt less.
+
+What I’m least sure about is all the near-duplicate ABSA abstracts. If 20 of them say roughly the same thing, picking the right one is harder for every system, and the gaps between them might shrink. That’s where I could be wrong.
 
 ---
 
@@ -40,6 +50,8 @@ If you rejected the alternative without measuring it, say why that was a fair ca
 
 "There was no alternative" is not an answer.
 Find the fork.
+
+### Answer
 
 I went with bge-small-en-v1.5 for `dense`.
 The other option was potion-retrieval-32M, a static model: a word's vector is a table lookup and a text's vector is pretty much the average of its words, so it never sees word order or context.
