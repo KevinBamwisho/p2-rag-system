@@ -4,7 +4,7 @@ from pathlib import Path
 
 import pytest
 
-from p2 import config, corpus, retrievers
+from p2 import claude, config, corpus, retrievers
 
 DOCS = {
     "a-dust": "# 1.1 Rock dust.\n\nIncombustible rock dust shall be applied to the roof, ribs and floor.",
@@ -54,3 +54,58 @@ def test_hybrid_fuses_chunks_for_p2_answer(setup):
     hits = retrievers.build("hybrid", c, cfg).search_chunks("rock dust", 2)
     assert hits[0][0] == "a-dust#0"
     assert len(hits) == 2
+
+
+
+@pytest.mark.parametrize(
+    ("reply", "reordered"),
+    [
+        (claude.Reply({"order": [3, 1, 2]}, 0, 0, 0, "sonnet"), True),
+        (claude.Reply({"order": [1, 1, 2]}, 0, 0, 0, "sonnet"), False),  # a number twice
+        (claude.Reply({"order": ["3", 1, 2]}, 0, 0, 0, "sonnet"), False),  # not all integers
+        (claude.Reply(None, 0, 0, 0, "sonnet", error="no reply"), False),
+    ],
+)
+def test_rerank_applies_a_valid_order_and_keeps_hybrids_otherwise(setup, monkeypatch, reply, reordered):
+    c, cfg = setup
+    sent = []
+    monkeypatch.setattr(claude, "call", lambda prompt, schema, **kw: sent.append((prompt, schema)) or reply)
+    first = [d for d, _ in retrievers.build("hybrid", c, cfg).search("rock dust", 3)]
+    got = retrievers.build("rerank", c, cfg).search("rock dust", 3)
+    assert [d for d, _ in got] == ([first[2], first[0], first[1]] if reordered else first)
+    assert [s for _, s in got] == pytest.approx([1, 1 / 2, 1 / 3])
+    prompt, schema = sent[0]
+    assert "[3] " in prompt and "Query: rock dust" in prompt
+    assert schema["properties"]["order"]["items"] == {"type": "integer", "minimum": 1, "maximum": 3}
+    assert schema["properties"]["order"]["uniqueItems"] is True
+    first_chunks = [cid for cid, _ in retrievers.build("hybrid", c, cfg).search_chunks("rock dust", 3)]
+    got_chunks = [cid for cid, _ in retrievers.build("rerank", c, cfg).search_chunks("rock dust", 3)]
+    assert got_chunks == ([first_chunks[2], first_chunks[0], first_chunks[1]] if reordered else first_chunks)
+
+
+def test_rerank_shows_a_long_documents_best_chunk_with_its_title(setup, monkeypatch):
+    c, cfg = setup
+    cfg = cfg.replace(chunk_words=10, chunk_overlap=0)
+    filler = " ".join(f"word{i}" for i in range(30))
+    (cfg.root / "docs" / "d-long.md").write_text(f"# 9.9 Long section.\n\n{filler} radon daughters exposure\n", encoding="utf-8", newline="\n")
+    c = corpus.load_dir(cfg.root / "docs", "tiny")
+    sent = []
+    monkeypatch.setattr(claude, "call", lambda prompt, schema, **kw: sent.append(prompt) or claude.Reply(None, 0, 0, 0, "sonnet", error="x"))
+    retrievers.build("rerank", c, cfg).search("radon daughters exposure", 4)
+    assert "# 9.9 Long section.\n\n... " in sent[0] and "radon daughters exposure" in sent[0]
+    assert "word0 " not in sent[0]  # the opening chunk is not the one shown
+
+
+def test_rerank_deletes_a_saved_invalid_reply(setup, monkeypatch):
+    c, cfg = setup
+    cfg = cfg.replace(cache_claude=True)
+    cache = claude.cache_folder(cfg)
+    cache.mkdir(parents=True)
+
+    def fake(prompt, schema, model, **kw):
+        (cache / f"{claude.cache_key(prompt, schema, model, None)}.json").write_text("{}")
+        return claude.Reply({"order": [1, 1, 2]}, 0, 0, 0, "sonnet")
+
+    monkeypatch.setattr(claude, "call", fake)
+    retrievers.build("rerank", c, cfg).search("rock dust", 3)
+    assert list(cache.iterdir()) == []
