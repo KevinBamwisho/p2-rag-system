@@ -28,15 +28,15 @@ If you were surprised later, say so in prompt 4 or in EVAL.md; do not come back 
 
 ### Answer
 
-I picked 400 to 600 arXiv abstracts on customer-feedback NLP: aspect-based sentiment, review and opinion mining, complaint detection, customer-support text. I’m aiming at a role that’s mostly voice-of-customer and NLP on feedback text, so this is the kind of stuff I’d actually be searching through on the job. The abstracts are CC0 so I can republish them, and they’re about 200 words each so judging relevance is quick. 
+I’m using about 1,000 posts from Meta Stack Exchange, which are users’ feature requests, bug reports and complaints about the platform. I first planned arXiv abstracts on customer-feedback NLP, but switched before running anything, since these are actual feedback and not papers about it. That fits the role I’m aiming at, which is voice-of-customer and NLP on feedback text. The posts are CC BY-SA 4.0, so I can republish them with attribution under the same license. The median post is about 95 words, so judging relevance is quick.
 
-I expect rerank to win again. On the CFR it put the right section first every time it was in hybrid’s top 20, and abstracts are short so it should be cheaper too. The catch is the same as before: it can’t fix anything hybrid didn’t find.
+I expect rerank to win again. On the CFR it put the right section first every time it was in hybrid’s top 20. The catch is the same as before: it can’t fix anything hybrid didn’t find.
 
-I expect bm25 to do worst overall. A named query should act like a CFR identifier, so bm25 should be fine there. But a plain-language query should act like a paraphrase, and on the CFR bm25 scored 0 when the wording didn’t match. That’s a whole query class where it can crash. Dense should do better here than on the CFR since this is prose, not legal codes.
+I expect bm25 to do worst overall. A named query (a feature or site name) should work like a CFR identifier, but on the CFR bm25 scored 0 when the wording didn’t match, and plain-language queries will do that. Dense should do better here than on the CFR, since this is prose.
 
-I expect hybrid to land close behind rerank. bm25 and dense should agree more often on abstracts, and RRF’s problem was burying sections only one system found, so it should hurt less.
+I expect hybrid to land close behind rerank, because bm25 and dense should agree more often on prose, so RRF should bury less.
 
-What I’m least sure about is all the near-duplicate ABSA abstracts. If 20 of them say roughly the same thing, picking the right one is harder for every system, and the gaps between them might shrink. That’s where I could be wrong.
+What I’m least sure about is that about a third of the corpus is duplicate clusters, the same complaint in different words, and 188 posts are under 50 words. That makes picking the one right post harder for every system, so the gaps between them might shrink.
 
 ---
 
