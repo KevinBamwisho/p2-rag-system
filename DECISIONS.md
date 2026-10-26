@@ -41,7 +41,26 @@ If you rejected the alternative without measuring it, say why that was a fair ca
 "There was no alternative" is not an answer.
 Find the fork.
 
-TODO: your answer to prompt 2.
+I went with bge-small-en-v1.5 for `dense`.
+The other option was potion-retrieval-32M, a static model: a word's vector is a table lookup and a text's vector is pretty much the average of its words, so it never sees word order or context.
+I ran both on the 20 shared practice queries.
+
+- MRR@10: bge 0.562, potion 0.475. The difference is -0.088 [-0.335, +0.153], so not distinguishable, and the MDD for that pair is 0.349.
+- Recall@10: bge 0.558, potion 0.533. nDCG@10: bge 0.480, potion 0.432.
+- Encoding the corpus: bge took 115 seconds, potion 0.4 seconds. Per query (median): bge 9.9 ms, potion 2.2 ms.
+
+What I gave up is speed.
+At this size that barely matters: the 115 seconds happens once because the vectors get cached, and 10 ms a query is nothing next to a Claude call.
+On a much bigger corpus, or one that changes all the time, it would matter a lot more.
+
+Why bge when the gold set can't tell them apart: it comes down to the job dense does inside hybrid.
+bm25 already finds every identifier query (recall@10 1.000) and none of the paraphrase ones (0.000).
+Potion's edge was on identifiers (MRR@10 0.571 vs bge's 0.333), which bm25 already covers.
+bge's edge was on paraphrases (0.714 vs 0.300), which is exactly the gap dense is there to fill.
+That's 7 queries per class with no interval, so it's a reason, not proof.
+
+I'll test it again in the ablation on my own corpus.
+I've already seen these numbers, so that prediction isn't blind, and it'll say so.
 
 ---
 
