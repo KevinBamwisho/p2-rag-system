@@ -42,7 +42,18 @@ In those queries the relevant sections (all of p08's and p10's, two of p14's thr
 I kept the change, but it does push p08 out of a top 20.
 `search_chunks` fuses the two chunk rankings the same way, so `p2 answer` can use it.
 
-TODO: describe `rerank` (Phase 2).
+`rerank` sends hybrid's top 20 to Claude (Sonnet) as numbered passages and asks for all 20 back, best first.
+It's one listwise call per query, like `rerank_one()` in the 13 lab.
+If a reply isn't each number once, the query keeps hybrid's order.
+None of the 20 practice replies needed that.
+
+The main change from the lab is what Claude sees.
+The lab cut each article to its first 600 characters.
+I send each document's best chunk instead, with the title in front, cut at 2,000 characters.
+CFR sections run longer than help center articles (median 437 characters, 90th percentile 2,366), and the rule that matched can sit past the opening.
+
+The 20 practice calls read 881,875 input tokens and cost $1.86.
+That's about 44,000 tokens a call, more than three times the brief's 12,000.
 
 ### Practice queries (20)
 
@@ -54,6 +65,7 @@ Scores per system.
 | bm25 | 0.625 | 0.507 | 0.518 |
 | dense | 0.558 | 0.562 | 0.480 |
 | hybrid | 0.617 | 0.471 | 0.457 |
+| rerank | 0.725 | 0.750 | 0.731 |
 | dense_potion | 0.533 | 0.475 | 0.432 |
 
 20 judged queries; nDCG uses binary labels; a random ranking of the 2,484 documents would get recall@10 near 0.004.
@@ -73,6 +85,9 @@ The same scores per query class.
 | hybrid | Recall@10 | 0.571 | 0.405 | 0.917 |
 | hybrid | MRR@10 | 0.514 | 0.154 | 0.792 |
 | hybrid | nDCG@10 | 0.435 | 0.203 | 0.779 |
+| rerank | Recall@10 | 0.714 | 0.500 | 1.000 |
+| rerank | MRR@10 | 0.714 | 0.571 | 1.000 |
+| rerank | nDCG@10 | 0.714 | 0.516 | 1.000 |
 | dense_potion | Recall@10 | 0.500 | 0.286 | 0.861 |
 | dense_potion | MRR@10 | 0.571 | 0.300 | 0.565 |
 | dense_potion | nDCG@10 | 0.470 | 0.254 | 0.595 |
@@ -92,6 +107,15 @@ Differences between every pair of systems, each with its paired interval and the
 | hybrid minus dense | Recall@10 | +0.058 | [-0.117, +0.242] | 0.261 | not distinguishable |
 | hybrid minus dense | MRR@10 | -0.091 | [-0.305, +0.110] | 0.300 | not distinguishable |
 | hybrid minus dense | nDCG@10 | -0.023 | [-0.191, +0.137] | 0.240 | not distinguishable |
+| rerank minus bm25 | Recall@10 | +0.100 | [-0.125, +0.325] | 0.331 | not distinguishable |
+| rerank minus bm25 | MRR@10 | +0.243 | [+0.010, +0.476] | 0.339 | rerank higher |
+| rerank minus bm25 | nDCG@10 | +0.212 | [-0.008, +0.426] | 0.316 | not distinguishable |
+| rerank minus dense | Recall@10 | +0.167 | [-0.025, +0.350] | 0.271 | not distinguishable |
+| rerank minus dense | MRR@10 | +0.188 | [-0.017, +0.392] | 0.294 | not distinguishable |
+| rerank minus dense | nDCG@10 | +0.251 | [+0.062, +0.431] | 0.268 | rerank higher |
+| rerank minus hybrid | Recall@10 | +0.108 | [+0.025, +0.209] | 0.141 | rerank higher |
+| rerank minus hybrid | MRR@10 | +0.279 | [+0.128, +0.441] | 0.229 | rerank higher |
+| rerank minus hybrid | nDCG@10 | +0.274 | [+0.159, +0.396] | 0.171 | rerank higher |
 | dense_potion minus bm25 | Recall@10 | -0.092 | [-0.308, +0.125] | 0.313 | not distinguishable |
 | dense_potion minus bm25 | MRR@10 | -0.033 | [-0.228, +0.177] | 0.296 | not distinguishable |
 | dense_potion minus bm25 | nDCG@10 | -0.086 | [-0.268, +0.106] | 0.270 | not distinguishable |
@@ -101,6 +125,9 @@ Differences between every pair of systems, each with its paired interval and the
 | dense_potion minus hybrid | Recall@10 | -0.083 | [-0.258, +0.067] | 0.236 | not distinguishable |
 | dense_potion minus hybrid | MRR@10 | +0.003 | [-0.161, +0.175] | 0.248 | not distinguishable |
 | dense_potion minus hybrid | nDCG@10 | -0.025 | [-0.161, +0.108] | 0.195 | not distinguishable |
+| dense_potion minus rerank | Recall@10 | -0.192 | [-0.350, -0.050] | 0.220 | rerank higher |
+| dense_potion minus rerank | MRR@10 | -0.275 | [-0.463, -0.108] | 0.261 | rerank higher |
+| dense_potion minus rerank | nDCG@10 | -0.298 | [-0.453, -0.159] | 0.216 | rerank higher |
 
 The interval is a paired bootstrap (10,000 resamples of the queries); MDD is the smallest difference this many queries detect 80% of the time.
 <!-- p2:end shared-practice-pairs -->
@@ -114,7 +141,7 @@ Which differences are distinguishable from zero and which are not?
 What is the minimum detectable difference at 20 queries, and what does that say about any gap smaller than it?
 Which claim from lecture 12 or 13 did your numbers support, and which did they leave open?
 
-No two systems are distinguishable on the 20 practice queries: every paired interval includes zero, on all three metrics.
+Among bm25, dense, hybrid and dense_potion, no two are distinguishable on the 20 practice queries: every paired interval between them includes zero, on all three metrics.
 The minimum detectable difference at 20 queries runs from 0.19 to 0.42, and every gap I saw is well under its own pair's MDD.
 The biggest ones, -0.092 recall@10 for dense_potion minus bm25 and -0.091 MRR@10 for hybrid minus dense, sit against MDDs of 0.313 and 0.300.
 The MDD is the gap this gold set would catch 80% of the time, so a real gap of 0.1 would get caught a lot less often than that.
@@ -132,12 +159,38 @@ What's going on is that RRF only counts ranks: with k = 60, a section only one s
 You can see it in the full rankings (rank of the first relevant section in bm25 / dense / hybrid, deeper than the top 10 the run files keep): p03 is 3 / 1736 / 35 and p06 is 1 / 664 / 32, and on p08 bm25 doesn't match any relevant section, dense ranks one first, and hybrid puts it 22nd.
 p10 and p14 fail a different way: dense misses them too (first relevant at 33 and 19), so fusion had nothing good to work with.
 
+rerank is the one system that separates.
+Against hybrid, its own first stage, it wins on all three metrics.
+MRR@10 goes up by +0.279 [+0.128, +0.441], which is also bigger than that pair's MDD of 0.229.
+nDCG@10 goes up by +0.274 [+0.159, +0.396] and recall@10 by +0.108 [+0.025, +0.209].
+It also beats bm25 on MRR@10, but only barely: +0.243 [+0.010, +0.476].
+It beats dense on nDCG@10, +0.251 [+0.062, +0.431].
+Every other comparison with those two includes zero.
+
+Per query it's pretty simple.
+On all 15 queries where hybrid had a relevant section in its top 20, rerank put one at rank 1.
+The 5 it misses (p03, p06, p08, p10, p14) are exactly the ones where hybrid had none in its top 20.
+So 0.750 = 15/20 is the most this reranker could get from hybrid's candidates.
+What holds it back now is the first stage's recall, not the reordering.
+That's the two stage idea from the 13 lab: cheap recall first, expensive ordering second.
+It also makes the RRF problem above cost more, since p08 sat at 22 in hybrid, two places from getting rescued.
+
+These intervals only cover which queries got sampled.
+They don't cover the variance between repeated runs of the reranker.
+Claude doesn't give the same order every time: p02 got three different orders from three calls, with the same top two each time.
+Those were on earlier versions of the prompt, and it's one example, not a measurement.
+This run is one draw.
+I haven't measured how much MRR@10 moves between repeats.
+
 ---
 
 ## 2. Stage 1 - cited answers on the 12 shared questions
 
 <!-- p2:begin answers -->
-_No answers files yet: run `uv run p2 answer --corpus shared --system NAME`, then `uv run p2 score`._
+| Label | System | Verified (in) | 95% interval | not_found (in) | Declined (out) | 95% interval | Quotes found |
+| --- | --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| hybrid | hybrid | 7 of 8 (88%) | [0.529, 0.978] | 0 of 8 (0%) | 4 of 4 (100%) | [0.510, 1.000] | 13 of 14 |
+| rerank | rerank | 8 of 8 (100%) | [0.676, 1.000] | 0 of 8 (0%) | 4 of 4 (100%) | [0.510, 1.000] | 11 of 11 |
 <!-- p2:end answers -->
 
 Which system answered, and why that one?
@@ -147,7 +200,45 @@ Then read three in-corpus answers that `uv run p2 verify` passed.
 For each one, open the cited chunk and say whether the quote really supports the claim next to it.
 The check proves a quote is a real piece of the chunk and cannot prove that it supports the claim, so this reading is the part only you can do.
 
-TODO: write your answer choices and your three-answer audit.
+I answered with `rerank`.
+It beat hybrid on MRR@10 by +0.279, with an interval of [+0.128, +0.441].
+The answer prompt only sees 5 chunks, so getting the right one near the top matters most.
+It costs two calls per question instead of one: a rerank of hybrid's top 20 chunks, then the answer.
+The 12 questions took 24 calls and $1.51.
+One caveat: the gain was measured on ranking documents for the practice queries.
+Nothing scores chunk reranking on these 12 questions, so I'm assuming it carries over.
+
+I also answered with `hybrid` (12 calls, $0.33), mainly to get enough claims for the judge in section 8.
+rerank's answers only had 11.
+Both declined all 4 unanswerable questions and didn't answer from memory.
+rerank verified 8 of 8 and hybrid 7 of 8.
+The paired difference in passing share over all 12 questions is -0.083 [-0.250, +0.000] (the `stretch-cost` table), so I can't claim a difference.
+hybrid's one failure, a04, isn't a made up quote.
+The section has "shall—", then a paragraph break, then "(1) Be held", and Claude wrote "shall—(1)" with no space.
+verify collapses whitespace but doesn't delete it, so it counts that as not word for word, which is fair.
+
+I didn't change `prompts/answer.txt`.
+
+For the audit I read rerank's a03, a05 and a07, 6 claims in all, against their cited chunks.
+Four match their quotes and are supported.
+Two are only partly supported.
+a03-c2 lists the three approved device options but drops their conditions.
+75.1714-1 requires MSHA and NIOSH approval under 42 CFR part 84, and option (c) also needs MSHA approval and use as prescribed.
+So the claim reads like any breathing apparatus that lasts an hour counts.
+a07-c3 says the same mid-axle rule applies under 57.9300, which the quote shows.
+But it adds "for underground metal and nonmetal mines", which isn't in the quote or the section.
+
+The bigger thing I found out is that the top level answers say more than their claims do.
+a03's says "underground coal miner", but nothing it cites says coal.
+It also says "provided" where the rule only says "make available", which is a weaker duty.
+a05's says "underground miner" where the quote only says "new miner".
+It also skips the paragraph (d) exception for recently trained miners.
+That's not because Claude didn't see it: (d) was in `cfr30-48.5#3`, the second chunk it got, and it still left it out.
+a07's calls 56.9300 surface and 57.9300 underground, with no claim behind either.
+It also states the mid-axle rule like it applies everywhere.
+Paragraph (a) limits it to roadways with a drop-off, and (d) exempts some elevated roadways that are rarely used.
+verify only looks at claims, so none of this shows up in its numbers.
+A PASS means the quotes are real, not that the answer a person reads is right.
 
 ---
 
@@ -280,15 +371,112 @@ For the hand and claude queries, do the same with your prediction before you sco
 Claude's verdicts from `p2 judge` against your own verdicts in the calibration file.
 
 <!-- p2:begin stretch-judge -->
-_No judged answers yet (stretch option 2): `uv run p2 judge answers/shared/LABEL.json` writes them, your own verdicts go in answers/shared/LABEL.calibration.tsv, and then `uv run p2 score` fills this table._
+| Answers file | Judged by Claude | supported | partly | not | Labeled by you | Labeled by both | Agree | 95% interval |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| hybrid | 14 | 13 | 1 | 0 | 14 | 14 | 12 of 14 (86%) | [0.601, 0.960] |
+| rerank | 11 | 9 | 2 | 0 | 11 | 11 | 9 of 11 (82%) | [0.523, 0.949] |
+| all files |  |  |  |  |  | 25 | 21 of 25 (84%) | [0.653, 0.936] |
+
+Claude's verdict (rows) against yours (columns), over the 25 claims you both labeled:
+
+| Claude | you: supported | you: partly | you: not | Total |
+| --- | ---: | ---: | ---: | ---: |
+| supported | 19 | 3 | 0 | 22 |
+| partly | 1 | 2 | 0 | 3 |
+| not | 0 | 0 | 0 | 0 |
+| total | 20 | 5 | 0 | 25 |
+
+Agree is the share of the claims you both labeled where Claude's verdict is yours, with a Wilson 95% interval.
 <!-- p2:end stretch-judge -->
+
+1. Option 2, the claim level faithfulness check.
+
+2. Before the judge ran, I labeled all 25 claims from both answers files myself.
+I read each claim, its quote and the chunk it cites.
+My labels are in `answers/shared/rerank.calibration.tsv` (11) and `answers/shared/hybrid.calibration.tsv` (14).
+Then Claude judged every claim, one call each, with `prompts/judge.txt` unchanged.
+Its verdicts are in `answers/shared/rerank.judged.json` and `answers/shared/hybrid.judged.json`, with traces in `traces/judge-rerank.jsonl` and `traces/judge-hybrid.jsonl`.
+
+3. `stretch-judge`, above.
+
+4. The table says the judge agrees with me on 21 of 25 claims (84%), with a Wilson interval of [0.653, 0.936].
+But 3 of the 25 are the same claim counted twice.
+a03-c1, a05-c1 and a08-c1 are identical in both answers files, same claim, quote and chunk.
+On the 22 distinct claims it agrees on 18 (82%), with an interval of [0.615, 0.927].
+That's not much better than a judge that does nothing.
+I called 17 of the 22 supported, so always answering supported would already get 77%.
+Cohen's kappa, which corrects for that, is about 0.40.
+So "the judge is right 84% of the time" claims way more than this shows.
+
+The disagreements say more than the headline.
+On the 17 distinct claims I called supported, it agreed on 16.
+On the 5 I called partly, it agreed on only 2 and called the other 3 supported.
+That's the direction that matters for a faithfulness check, since it means partly supported claims get through.
+But 5 claims is way too few to put a number on it.
+One of those 3 is also a difference in evidence, not just a judge miss.
+On rerank a03-c2 I went by conditions in the section's lead-in, and the judge only ever sees the quote.
+Read against the quote alone, supported is a fair call.
+
+Two of the disagreements, read closely.
+hybrid a07-c1 and a07-c2 say the mid-axle rule applies to "surface" and "underground" metal and nonmetal mines.
+The quote has the rule word for word but says nothing about surface or underground.
+The judge called both supported.
+For a07-c1 its reason was "the quote matches the claim's text verbatim regarding mid-axle height requirement".
+So it checked the part that matched and skipped the part that got added.
+It isn't consistent about it either.
+It called rerank a07-c3 partly for the same kind of added scope, because the quote doesn't "specify that it applies to underground mines".
+rerank a07-c1 goes the other way.
+I called it supported, since it's identical to 56.9300(a).
+The judge said partly because the quote "does not state any specific height requirement, which is what the question asks".
+That's grading the claim against the question, not against the quote, and the prompt doesn't ask for that.
+
+This says nothing about claims that aren't supported at all, since neither of us labeled any `not`.
+It also says nothing about another corpus or another answer prompt.
+And it's one person's labels, so it's agreement with me, not with the truth.
+I also saw the cited chunk and the judge didn't, so we weren't always judging from the same evidence.
+
+5. Next I'd tighten `prompts/judge.txt`.
+The judge should check every part of the claim, scope words like surface or underground included, and compare the claim only to the quote, not to the question.
+That would be tuning on my own labels, so I'd keep 21 of 25 as the before number and test on a fresh set of claims from new answers.
+It worked if the judge catches more of my partly claims without starting to mark my supported ones partly.
+The new set needs enough claims for the interval to actually move, and no repeats between files.
+Matching how I read claims would also need the judge to see the cited chunk, and `p2 judge` only sends the question, claim and quote.
 
 ### Cost and latency (option 3)
 
 The Claude calls, tokens and seconds in every trace you committed, and what a cheaper system or answers file saves against what it loses.
 
 <!-- p2:begin stretch-cost -->
-_No Claude traces yet: a run of a system that calls Claude, `p2 answer` and `p2 judge` write them in traces/, and then `uv run p2 score` fills this table._
+Every trace in traces/ that records a Claude call:
+
+| Trace | System | Spans | Claude calls | Saved | Input tokens | Output tokens | Seconds | Input per span | Output per span | Seconds per span |
+| --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| traces/answers-hybrid.jsonl | hybrid | 12 | 12 | 2 | 331,299 | 5,076 | 80.6 | 27,608 | 423 | 6.7 |
+| traces/answers-rerank.jsonl | rerank | 12 | 24 | 4 | 967,827 | 13,433 | 197.4 | 80,652 | 1,119 | 16.5 |
+| traces/judge-hybrid.jsonl | judge | 14 | 14 | 3 | 387,384 | 2,257 | 64.0 | 27,670 | 161 | 4.6 |
+| traces/judge-rerank.jsonl | judge | 11 | 11 | 2 | 342,382 | 1,589 | 48.2 | 31,126 | 144 | 4.4 |
+| traces/shared-practice-rerank.jsonl | rerank | 20 | 20 | 0 | 881,875 | 13,240 | 190.8 | 44,094 | 662 | 9.5 |
+
+A span is one query of a run, one question of an answers file, or one claim of a judged file. A saved reply costs nothing now, so it counts the tokens and the seconds of the call that made it.
+
+Every pair of systems on the same queries where at least one calls Claude, the one with fewer Claude input tokens per query first:
+
+| Cheaper minus dearer | Queries | MRR@10 difference | 95% interval | Input tokens saved per query | Seconds saved per query | Reading |
+| --- | ---: | ---: | ---: | ---: | ---: | --- |
+| shared practice: bm25 minus rerank | 20 | -0.243 | [-0.476, -0.010] | 44,094 | 9.5 | rerank higher |
+| shared practice: dense minus rerank | 20 | -0.188 | [-0.392, +0.017] | 44,094 | 9.5 | not distinguishable |
+| shared practice: hybrid minus rerank | 20 | -0.279 | [-0.441, -0.128] | 44,094 | 9.5 | rerank higher |
+| shared practice: dense_potion minus rerank | 20 | -0.275 | [-0.463, -0.108] | 44,094 | 9.5 | rerank higher |
+
+The difference is the cheaper system's score minus the dearer one's, with its paired interval; the savings count Claude calls only, so a system that makes none saves all of the other's.
+
+Every two answers files on the same questions, the one with fewer input tokens per question first:
+
+| Cheaper minus dearer | Questions | Passing share difference | 95% interval | Input tokens saved per question | Seconds saved per question | Reading |
+| --- | ---: | ---: | ---: | ---: | ---: | --- |
+| shared: hybrid minus rerank | 12 | -0.083 | [-0.250, +0.000] | 53,044 | 9.7 | not distinguishable |
+
+A question passes when its `p2 verify` line is a PASS: every quote is in a chunk that was retrieved, and the question is declined exactly when it should be.
 
 Systems that do not call Claude, from traces/retrieval/ on the machine that last ran `p2 score` (git ignores that folder, so `p2 check` does not compare this part):
 

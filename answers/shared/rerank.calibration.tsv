@@ -1,0 +1,12 @@
+claim	verdict	note
+a03-c1	supported	The quote matches the claim word for word. The claim leaves out the visitors clause, which doesn't affect a claim about miners.
+a03-c2	partly	The quote lists the three options but drops the conditions. The lead-in in 75.1714-1 requires MSHA/NIOSH approval under 42 CFR part 84. Option (c) also requires MSHA approval and use as prescribed. The claim reads as if any breathing apparatus lasting an hour qualifies.
+a05-c1	supported	The quote matches apart from the dropped "as prescribed in this section".
+a07-c1	supported	It is identical to 56.9300(a).
+a07-c2	supported	It is identical to 56.9300(b), and the "(56.9300)" label is correct.
+a07-c3	partly	The quote is identical to 57.9300(b), so "the same requirement applies under 57.9300" holds. But "for underground metal and nonmetal mines" isn't in the quote or the section text, so the claim adds a scope the evidence doesn't show.
+a01-c1	supported	quote has immediately, 15 min, and the death trigger. all there
+a02-c1	supported	word for word. skips the methane bump but the question is no methane so it's fine
+a04-c1	supported	identical to the quote
+a06-c1	supported	identical to the definition
+a08-c1	supported	quote matches. trailing comma is just list punctuation

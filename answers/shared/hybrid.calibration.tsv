@@ -1,0 +1,15 @@
+claim	verdict	note
+a01-c1	supported	immediately, 15 min, knows or should know, death. all in the quote
+a02-c1	supported	same text as the quote
+a02-c2	partly	quote only covers the methane increase. the 80 baseline is in the other sentence and "only" is an inference
+a03-c1	supported	matches. leaves out the visitors part but the claim is about miners
+a04-c1	supported	matches. trims "that would be used during an actual emergency" but meaning is the same
+a04-c2	supported	all three drill requirements are in the quote, just slightly shortened
+a05-c1	supported	matches. only drops "as prescribed in this section"
+a06-c1	supported	quote is a fragment but the chunk lead-in makes it the dose determination. claim is accurate
+a06-c2	supported	identical to the quote
+a06-c3	supported	identical to the quote
+a06-c4	supported	same rule, just reworded from "operator must assure" to "no miner may be exposed"
+a07-c1	partly	mid-axle part is exact but "surface metal/nonmetal" isn't in the quote or the section text
+a07-c2	partly	mid-axle part is exact but "underground metal/nonmetal" isn't in the quote or the section text
+a08-c1	supported	matches the quote
