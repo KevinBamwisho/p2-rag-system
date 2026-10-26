@@ -250,7 +250,11 @@ What is it, where did it come from, how many documents and how many megabytes, a
 Name the one or two documents you were least sure about and what you decided.
 Say which of the allowed sources in the brief it comes from.
 
-TODO: describe your corpus and its license basis.
+The corpus is 998 questions from Meta Stack Exchange, where users report bugs, ask for features and argue about how the site works, so it’s real feedback on a real product. They’re tagged bug, feature-request, support or discussion, posted between 2018-05-02 and 2024-03-28, and come from the April 2024 dump on archive.org. It’s about 1.1 MB and 157,000 words, and posts are short: the median is 95 words and 188 are under 50. I kept only the title and the question. Tags would hand bm25 free keywords, and images are gone (492 posts lost at least one).
+
+To pick them, I dropped posts with a negative score, posts by deleted users and posts under 20 words. Then I took whole groups of posts closed as duplicates of each other until they made up a third, and filled the rest at random, so 342 of the 998 link to another post in the corpus. That has two costs. Dropping downvoted posts leans toward feedback people agreed with, and the duplicate groups mean the same complaints show up more than they would in a random sample.
+
+It’s CC BY-SA 4.0. The licensing page covers anything posted on or after 2018-05-02, and each post’s own license field says the same. The manifest links every question and every author’s profile, and NOTICE.md lists what I changed. CC BY-SA is share-alike, so the corpus stays CC BY-SA 4.0 here, not CC0. I removed two posts: 333531, whose pasted Safari version string has an Apple copyright notice, and 337461, which quotes about 290 words of a copyrighted blog post. The 9 short quotes from other sources I kept as the authors posted them.
 
 ### The gold set
 
