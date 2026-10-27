@@ -316,6 +316,8 @@ Change one thing and keep everything else the same.
 Write your hypothesis here before you run it, in one sentence with a direction: "I expect X to raise MRR@10 on my corpus because Y."
 The run file for it lives in `runs/own/ablation/`.
 
+I expect swapping potion in for bge in dense to lower MRR@10 on my corpus. 13 of my 40 queries are plain, which should act like the shared paraphrases where bge beat potion 0.714 to 0.300, and potion’s edge on identifiers (0.571 to 0.333) should only help on the 12 named queries, which isn’t enough to make up for it. I expect the drop to be largest on plain and smallest, or reversed, on named, so the per-class table can check the mechanism and not just the headline number. The 15 jargon queries are the class I’m unsure about, since they share site words with the posts but aren’t exact ids. I already saw the shared result before writing this, so it isn’t a blind guess. The pool is also tilted against potion, since 179 of its 400 top-10 posts were never judged: that makes a potion drop weak evidence for this hypothesis, because the pool explains part of it, and a potion win strong evidence against it, because it won despite the bias.
+
 <!-- p2:begin own-ablation -->
 _No ablation runs yet: `uv run p2 run --corpus own --system NAME --ablation` writes one to runs/own/ablation/, then `uv run p2 score` fills this table._
 <!-- p2:end own-ablation -->
