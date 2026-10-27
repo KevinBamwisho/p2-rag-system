@@ -271,7 +271,7 @@ A post is relevant if someone who typed the query would be happy to land on it, 
 
 For candidates I pooled five sources per query: bm25’s top 10, dense’s top 10, a keyword search, the post each query was matched to, and that post’s duplicates. The keyword search took the 5 posts sharing the most content words with the query and kept those that share at least 2 and at least half of them, ties going to the lower post id. For Claude’s queries the matched post is the one it read. For mine it was a guess from the title, and the guess was wrong once (h18), which the pool still caught. That came to 705 candidates, 12 to 24 per query. Each list was shuffled with its sources hidden, so I couldn’t tell which system found what. I marked 51 relevant. I didn’t read every post in full. I rejected clearly off topic titles without opening them and skimmed the body of anything plausible. After judging, I checked the duplicates of every relevant post, and all of them were already in the pool.
 
-The pool has a known gap. Hybrid, rerank and the dense_potion ablation weren’t in it, and a post nobody judged counts as not relevant. So if one of them finds a relevant post that bm25 and dense missed, it gets no credit, and those three can only look worse than they are. It’s worst for dense_potion: 179 of its 400 top-10 posts were never judged, so the ablation compares a fully judged system with a half-judged one. Most queries have one relevant post that’s already in the qrels, so the effect may be small, but I can’t rule it out without judging those posts.
+The pool has a known gap. Hybrid, rerank and the dense_potion ablation weren’t in it, and a post nobody judged counts as not relevant. So if one of them finds a relevant post that bm25 and dense missed, it gets no credit, and those three can only look worse than they are on recall and MRR. It’s worst for dense_potion: 179 of its 400 top-10 posts were never judged, so the ablation compares a fully judged system with a half-judged one. Most queries have one relevant post that’s already in the qrels, so the effect may be small, but I can’t rule it out without judging those posts.
 
 ---
 
@@ -391,7 +391,17 @@ Which differences are distinguishable and which are not, at your gold-set size?
 Do the `hand` queries and the `claude` queries tell the same story?
 Did your prediction in `DECISIONS.md` prompt 1 hold?
 
-TODO: write what your own-corpus intervals let you claim.
+Rerank is the only system that clearly beats the rest. On MRR@10 it beats bm25 by +0.183 [+0.079, +0.300], dense by +0.143 [+0.063, +0.233] and hybrid by +0.127 [+0.048, +0.217], and it beats all three on nDCG@10 too.
+
+Between bm25, dense and hybrid, no MRR@10 difference is distinguishable. Their differences are 0.016 to 0.056, and 40 queries only detect 0.09 to 0.14. They do split on recall@10. Dense beats bm25 by +0.139 [+0.044, +0.247] and hybrid beats bm25 by +0.107 [+0.025, +0.203]. Hybrid also beats bm25 on nDCG@10, +0.077 [+0.015, +0.142]. So bm25 misses more relevant posts, but on MRR@10 I can't say the others put the first one any higher. On recall@10 rerank isn't distinguishable from dense, +0.006 [-0.031, +0.044], or from hybrid, +0.037 [+0.000, +0.100]. It can only pull posts up from hybrid's ranks 11 to 20, so there isn't much recall for it to add.
+
+All four systems get 1.000 on the 12 named queries, so all of these differences come from the 28 plain and jargon ones.
+
+The hand and claude queries mostly tell the same story, but Claude's are easier. Rerank is first on MRR@10 in both groups. On my hand queries bm25, dense and hybrid are pretty much tied, 0.700, 0.704 and 0.704. Claude's queries score higher on dense and hybrid, by -0.231 [-0.425, -0.038] and -0.263 [-0.458, -0.079] on MRR@10 (hand minus claude). On bm25, and on rerank's MRR@10, the gap isn't distinguishable. Claude's queries share 0.75 of their content words with the relevant post and mine share 0.51. bm25's lead over dense isn't distinguishably different between the two groups on any metric, so I can't say Claude's queries favor keyword search. p2 also warns that 0.963 may mean the queries are too easy. Rerank still gets 0.925 on my hand queries, so it isn't only Claude's queries (DECISIONS prompt 4).
+
+My prediction mostly held. Rerank won. bm25 is the lowest of the four on every metric, but it's only distinguishably worse than rerank on everything, than dense and hybrid on recall, and than hybrid on nDCG. I was wrong that hybrid would land close behind rerank. Rerank beats it by 0.127, and hybrid doesn't beat dense. I said the duplicate clusters and the 188 posts under 50 words might shrink the gaps. The free systems are hard to tell apart, but nothing here shows either one is the reason.
+
+These scores count only judged posts. Section 7 says how many unjudged posts sit in hybrid's and rerank's top 10.
 
 ---
 
@@ -527,7 +537,7 @@ Counted on mine only: near duplicates. Four of the five posts rerank missed on m
 
 Partly tested: how the queries were written. Every own query was written with one post in mind, and Claude read its post first. Claude's queries share 0.75 of their words with the relevant post and mine share 0.51, and dense scores higher on Claude's, a difference of -0.231 [-0.425, -0.038] (hand minus claude). p2 score also warns that rerank's 0.963 means the queries may be too easy. So my scores are probably higher than these systems would get on real searches. My guess is that's most of why everything scores higher on my corpus, more than anything about informal text.
 
-What this can't support: no interval here compares the two corpora. They have different queries and different documents, so "rerank gains less on my corpus" isn't a claim. Hybrid is already near the top there, so there's less room. Between bm25, dense and hybrid, the 20 shared queries only detect MRR@10 differences of 0.19 to 0.41, and my 40 detect 0.09 to 0.14. Hybrid has 74 unjudged posts in its top 10 on my corpus and rerank has 131, none at rank 1 (side script over my local pool file). Unjudged counts as not relevant, so their own corpus scores can only go up if those posts got judged.
+What this can't support: no interval here compares the two corpora. They have different queries and different documents, so "rerank gains less on my corpus" isn't a claim. Hybrid is already near the top there, so there's less room. Between bm25, dense and hybrid, the 20 shared queries only detect MRR@10 differences of 0.19 to 0.41, and my 40 detect 0.09 to 0.14. Hybrid has 74 unjudged posts in its top 10 on my corpus and rerank has 131, none at rank 1 (side script over my local pool file). Unjudged counts as not relevant, so if their own unjudged posts got judged, their recall and MRR could only go up. nDCG could go either way, since a new relevant post also raises the best possible score.
 
 ---
 

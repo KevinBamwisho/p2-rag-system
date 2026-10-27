@@ -88,7 +88,9 @@ What did you do instead?
 If it genuinely never happened, say so plainly, and then say what you would have had to check in order to notice.
 Being honest here costs you far less than a story you cannot defend when you record your video.
 
-TODO: your answer to prompt 3.
+### Answer
+
+It was my own query h18, “weekly Sunday refresh stalled for Unix and Linux on SEDE”. To build the pool, Claude guessed from titles which post each of my hand queries was about. For h18 it guessed 347083, “No new data on data.stackexchange.com”. I read it, and it’s about Stack Overflow data, not Unix and Linux. 347039, “SEDE appears to be partially-refreshed”, was also in the pool, and it’s the one that names U&L. I marked 347039 relevant and 347083 not. I only caught it because I read the bodies and not the titles. The guess only decided what went into the pool, so it changed no score, but if I’d trusted it, h18 would have scored about 0.11 on dense instead of 1.0. EVAL section 3 says the guess was wrong.
 
 ---
 
@@ -100,7 +102,9 @@ It could be a mean over a small query class, a difference whose interval include
 What would have to be true for you to trust it?
 Did you do anything to test it, and what did that show?
 
-TODO: your answer to prompt 4.
+### Answer
+
+Rerank’s 0.963 MRR@10 on my corpus. It’s nearly the max, and p2 warns that 0.95 or higher may mean the queries are too easy. Every query was written with one post in mind, and Claude’s share 0.75 of their words with that post, against 0.51 for mine. Real users haven’t seen the post they’re looking for. I split by origin: on my 20 hand queries rerank gets 0.925, and the gap to Claude’s 1.000 isn’t distinguishable (-0.075 [-0.200, +0.000]). So mine are easy too. To trust it I’d want queries written without seeing the target, like titles of posts closed as duplicates, taken from the raw dump.
 
 ---
 
@@ -111,4 +115,6 @@ One thing in your system, your corpus or your gold set that is not right, not fi
 What would you do next, and how would you find out whether it matters?
 Name the file, the query or the document where someone could look.
 
-TODO: your answer to prompt 5.
+### Answer
+
+The pool is incomplete. Hybrid, rerank and potion were never pooled, and unjudged counts as not relevant. Potion has 179 unjudged posts in its top 10, which hits the ablation hardest: its drop is -0.238 [-0.363, -0.114], but if every unjudged post were relevant it would get 0.791 against dense’s 0.819. So I can’t say how much of the drop is the model. Next I’d judge the unjudged posts potion ranked above its first relevant one, from its run file in runs/own/ablation/, then rescore. It matters if potion’s interval stops excluding zero.
