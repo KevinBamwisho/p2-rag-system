@@ -2,3 +2,43 @@
 # origin is hand when you wrote the query yourself and claude when a model drafted it; at least 10 must be hand.
 # class is a word you choose, for example identifier, paraphrase or mixed as in the shared sets; scores are reported per class.
 # Lines that start with # are comments, so delete these lines or keep them, as you like.
+h01	plain	dragging a picture into the post box shows two copies side by side	hand
+h02	plain	best way to format the output of a function inside a markdown code block	hand
+h03	plain	why am i blocked from fixing mistakes in my own post after i removed it	hand
+h04	plain	how to export a list of links timestamps and view counts for all my posts without the text	hand
+h05	plain	typing the at sign on a phone browser does not suggest usernames in comments	hand
+h06	jargon	user avatar card wraps to a new row when a post has really long topic labels	hand
+h07	plain	temporarily freezing accounts of kids who are too young instead of wiping their profiles	hand
+h08	jargon	keep red flags active in the queue when a post gets nuked from Low Quality Posts	hand
+h09	jargon	do staff accounts automatically get the 100 rep association bonus on day one	hand
+h10	jargon	does a network suspension automatically strip a user of their mod diamond	hand
+h11	jargon	closing a question as a dupe when the target thread has zero answers	hand
+h12	jargon	submitting back to back suggested edits on the same post before the queue clears	hand
+h13	jargon	close vote banner reverts to old display name after user account is scrubbed	hand
+h14	jargon	let diamond mods bypass the ten character floor on revision notes	hand
+h15	named	cross-site queries failing in SEDE because of Data.StackExchangePOC	hand
+h16	named	Winter Bash hats like Gem Detector and Warm Welcome cause careless upvoting on poor posts	hand
+h17	named	do close votes or delete votes trigger the Where in the World hat	hand
+h18	named	weekly Sunday refresh stalled for Unix and Linux on SEDE	hand
+h19	named	did Glorfindel write a bot to update old user IDs in share links after an account merge	hand
+h20	named	written text transcripts for episodes of the Unicorn Meta Zoo podcast	hand
+c01	jargon	question body goes blank after an edit notice while voting to close as duplicate	claude
+c02	jargon	serial voting reversal triggered by a vote on only one post	claude
+c03	jargon	Edit button in a review task fails silently when the suggested edit queue is full	claude
+c04	jargon	Low Quality Posts review audits missing from the profile activity tab	claude
+c05	jargon	asker and answerers not notified when someone else puts a bounty on the question	claude
+c06	jargon	merge or burninate the events, meetups and conferences tags	claude
+c07	jargon	rep notification for an approved suggested edit links to the wrong site	claude
+c08	plain	didn't get notified when someone answered my question	claude
+c09	plain	still getting updates about a question I followed after it was deleted	claude
+c10	plain	nothing happens when I tap the button to post my question on an iPad	claude
+c11	plain	got logged out after only two days	claude
+c12	plain	can't see who closed my own question	claude
+c13	plain	thank you banner keeps coming back after I filled out the survey	claude
+c14	plain	printed pages come out squeezed to the left side	claude
+c15	named	already have the Curious badge but didn't get the Edward hat	claude
+c16	named	should the Disciplined and Peer Pressure badges be retired	claude
+c17	named	Show DMCA locks moderator option leads to a 404	claude
+c18	named	secure electronic way to opt out of the mandatory arbitration	claude
+c19	named	announcement stuck in Featured on Meta for weeks	claude
+c20	named	how many views does the Community Bulletin bring to a meta post	claude
